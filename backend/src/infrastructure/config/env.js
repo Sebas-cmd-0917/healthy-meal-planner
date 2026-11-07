@@ -18,7 +18,7 @@ if (persistence === 'supabase' && process.env.SUPABASE_SECRET_KEY?.startsWith('s
 export const env = {
   port: Number(process.env.PORT ?? 3000),
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((s) => s.trim()),
+  corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:5174').split(',').map((s) => s.trim()),
   persistence,
   supabase: persistence === 'supabase'
     ? { url: required('SUPABASE_URL'), secretKey: required('SUPABASE_SECRET_KEY') }

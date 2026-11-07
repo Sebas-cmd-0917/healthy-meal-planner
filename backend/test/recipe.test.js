@@ -4,7 +4,7 @@ import { createApp } from '../src/app.js';
 import { buildContainer } from '../src/infrastructure/container.js';
 import { InMemoryRecipeRepository } from '../src/infrastructure/adapters/persistence/memory/InMemoryRecipeRepository.js';
 
-const env = { corsOrigin: ['http://localhost:5173'], persistence: 'memory', n8n: {} };
+const env = { corsOrigin: ['http://localhost:5174'], persistence: 'memory', n8n: {} };
 
 async function startServer() {
   const events = [];
