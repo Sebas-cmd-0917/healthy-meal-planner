@@ -24,12 +24,12 @@ pnpm test
 cd frontend
 cp .env.example .env
 pnpm install
-pnpm dev                  # http://localhost:5173
+pnpm dev                  # http://localhost:5174
 ```
 
 ## Supabase
 1. Crear proyecto en supabase.com.
-2. SQL Editor → ejecutar `supabase/migrations/0001_init.sql`.
+2. SQL Editor → ejecutar en orden `supabase/migrations/0001_init.sql` y `0002_schedule.sql`.
 3. En `backend/.env`: `PERSISTENCE=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (la llave `sb_secret_...`).
 
 La secret key solo vive en el backend. RLS está activo y sin políticas públicas.
@@ -55,6 +55,17 @@ Regla: `domain` no importa nada de afuera; `application` solo importa `domain`;
 Para agregar un módulo nuevo (ej. `meal-plan`): entidad en `domain/`, puerto(s) en
 `application/ports/`, casos de uso en `application/use-cases/`, adaptador en
 `infrastructure/adapters/`, rutas en `infrastructure/http/` y registrarlo en `container.js`.
+
+## API de la agenda semanal
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/api/schedule?from=AAAA-MM-DD&to=AAAA-MM-DD` | Bloques del rango (máx. 31 días) |
+| POST | `/api/schedule` | Crea uno o varios bloques: `{ "blocks": [...] }`. Si uno es inválido, no se guarda ninguno |
+| PATCH | `/api/schedule/:id` | Actualiza campos de un bloque |
+| DELETE | `/api/schedule/:id` | Quita un bloque |
+
+Un bloque: `{ date, start, end, kind: trabajo|gym|comida|otro, title, notes, recipeId?, exercises? }`.
+Los de gym llevan su rutina: `exercises: [{ name, sets, reps, weightKg, notes }]`.
 
 ## n8n
 El backend publica eventos (ej. `recipe.created`) como `POST {N8N_WEBHOOK_BASE_URL}/recipe-created`.
