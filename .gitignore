@@ -7,8 +7,9 @@ dist/
 .vercel/
 coverage/
 
-# Impeccable (local)
-.impeccable/config.local.json
-.impeccable/questions/
-.impeccable/review/
-.claude/skills/impeccable/scripts/bin/
+# Herramientas del agente y sus documentos (solo locales)
+.claude/
+.mcp.json
+.impeccable/
+PRODUCT.md
+DESIGN.md
