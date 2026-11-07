@@ -1,7 +1,8 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install -g pnpm@12.18.0
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 COPY src ./src
 ENV NODE_ENV=production
 EXPOSE 3000

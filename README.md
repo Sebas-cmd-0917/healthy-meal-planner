@@ -8,22 +8,23 @@ Planificador de comidas saludables: recetas, plan semanal y generación de lista
 - Automatizaciones: n8n local vía webhooks
 
 ## Requisitos
-Node.js 20.19+ o 22.12+
+Node.js 20.19+ o 22.12+ y pnpm 12 (`npm install -g pnpm@12.18.0`).
+Cada carpeta tiene su `pnpm-workspace.yaml` con la configuración de seguridad de dependencias.
 
 ## Arranque local
 ```bash
 # Backend
 cd backend
 cp .env.example .env      # PERSISTENCE=memory funciona sin base de datos
-npm install
-npm run dev               # http://localhost:3000/api/health
-npm test
+pnpm install
+pnpm dev                  # http://localhost:3000/api/health
+pnpm test
 
 # Frontend (otra terminal)
 cd frontend
 cp .env.example .env
-npm install
-npm run dev               # http://localhost:5173
+pnpm install
+pnpm dev                  # http://localhost:5173
 ```
 
 ## Supabase

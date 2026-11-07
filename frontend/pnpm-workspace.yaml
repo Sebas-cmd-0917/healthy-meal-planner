@@ -1,0 +1,18 @@
+# Configuración de pnpm (no es monorepo: solo ajustes de seguridad)
+
+# No instalar versiones publicadas hace menos de 3 días:
+# da tiempo a que la comunidad detecte y retire paquetes secuestrados.
+minimumReleaseAge: 4320
+
+# Rechazar una versión si sus señales de confianza (provenance, publicación
+# verificada) empeoran respecto a las anteriores: típico de cuentas robadas.
+trustPolicy: no-downgrade
+
+# Fallar si una dependencia quiere ejecutar scripts de instalación sin aprobación.
+strictDepBuilds: true
+
+# No aceptar dependencias que vengan de git, tarballs o rutas locales.
+blockExoticSubdeps: true
+
+# Scripts de instalación aprobados explícitamente (se llena con `pnpm approve-builds`).
+allowBuilds: {}
