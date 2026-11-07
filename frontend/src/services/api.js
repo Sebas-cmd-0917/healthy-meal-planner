@@ -16,4 +16,10 @@ export const api = {
     list: () => request('/recipes'),
     create: (recipe) => request('/recipes', { method: 'POST', body: JSON.stringify(recipe) }),
   },
+  schedule: {
+    list: (from, to) => request(`/schedule?from=${from}&to=${to}`),
+    create: (blocks) => request('/schedule', { method: 'POST', body: JSON.stringify({ blocks }) }),
+    update: (id, changes) => request(`/schedule/${id}`, { method: 'PATCH', body: JSON.stringify(changes) }),
+    remove: (id) => request(`/schedule/${id}`, { method: 'DELETE' }),
+  },
 };

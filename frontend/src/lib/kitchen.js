@@ -13,6 +13,15 @@ export const CATEGORIES = [
   { id: 'despensa', label: 'Despensa', magnet: MAGNETS.limon },
 ];
 
+// Tipos de bloque de la agenda; el color de imán los distingue en toda la app
+export const KINDS = [
+  { id: 'trabajo', label: 'Trabajo', magnet: MAGNETS.arandano },
+  { id: 'gym', label: 'Gym', magnet: MAGNETS.hoja },
+  { id: 'comida', label: 'Comida', magnet: MAGNETS.tomate },
+  { id: 'otro', label: 'Otro', magnet: MAGNETS.limon },
+];
+export const kindById = (id) => KINDS.find((k) => k.id === id) ?? KINDS[3];
+
 export const MEALS = [
   { id: 'desayuno', label: 'Desayuno', magnet: MAGNETS.limon },
   { id: 'almuerzo', label: 'Almuerzo', magnet: MAGNETS.tomate },
@@ -43,14 +52,26 @@ export const mealOfRecipe = (recipe) => MEALS.find((m) => recipe?.tags?.includes
 const pad = (n) => String(n).padStart(2, '0');
 export const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-/** Días de la semana actual, de lunes a domingo. */
-export function currentWeek(today = new Date()) {
-  const start = new Date(today);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    return d;
-  });
+/** Lunes de la semana que contiene `date`, a las 00:00 locales. */
+export function startOfWeek(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+export function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+/** Los 7 días (lunes a domingo) de la semana que empieza en `start`. */
+export const weekDays = (start) => Array.from({ length: 7 }, (_, i) => addDays(start, i));
+
+/** ¿Está pasando ahora? (bloque de hoy y la hora actual entre inicio y fin) */
+export function isNow(block, now = new Date()) {
+  if (block.date !== dayKey(now)) return false;
+  const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return block.start <= hhmm && hhmm < block.end;
 }

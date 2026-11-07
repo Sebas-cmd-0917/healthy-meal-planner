@@ -1,58 +1,54 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import { Flame } from 'lucide-vue-next';
 import FridgeDoor from '@/components/FridgeDoor.vue';
+import ScheduleBlock from '@/components/ScheduleBlock.vue';
 import { useRecipesStore } from '@/stores/recipes';
-import { usePlanStore } from '@/stores/plan';
-import { MEALS, dayKey } from '@/lib/kitchen';
+import { useScheduleStore } from '@/stores/schedule';
 
 const recipes = useRecipesStore();
-const plan = usePlanStore();
-const { byId } = storeToRefs(recipes);
+const schedule = useScheduleStore();
+const { today, todayError } = storeToRefs(schedule);
 
-const today = new Date();
-const todayKey = dayKey(today);
-const dateLabel = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(today);
+const dateLabel = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 const title = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
-const meals = computed(() =>
-  MEALS.map((meal) => ({ ...meal, recipe: byId.value.get(plan.get(todayKey, meal.id)) ?? null })),
-);
-const planned = computed(() => meals.value.filter((m) => m.recipe).length);
+const recipeName = (block) => (block.recipeId ? recipes.byId.get(block.recipeId)?.name ?? '' : '');
 
-onMounted(() => recipes.fetchAll());
+// Re-render cada minuto para que el "Ahora" avance solo
+const tick = ref(0);
+let timer;
+onMounted(() => {
+  schedule.loadToday();
+  recipes.fetchAll();
+  timer = setInterval(() => { tick.value += 1; }, 60_000);
+});
+onUnmounted(() => clearInterval(timer));
 </script>
 
 <template>
   <div class="page">
     <header class="page-head">
       <h1>{{ title }}</h1>
-      <p>Qué comes hoy y qué tienes en casa.</p>
+      <p>Tu día y lo que tienes en casa.</p>
     </header>
 
     <div class="today">
-      <section class="meals panel" aria-labelledby="meals-title">
-        <header class="meals-head">
-          <h2 id="meals-title">Comidas de hoy</h2>
-          <p class="num">{{ planned }} de 3 planeadas</p>
+      <section class="day panel" aria-labelledby="day-title">
+        <header class="day-head">
+          <h2 id="day-title">Tu día</h2>
+          <p class="num">{{ today.length }} {{ today.length === 1 ? 'actividad' : 'actividades' }}</p>
         </header>
 
-        <ol class="meal-list">
-          <li v-for="meal in meals" :key="meal.id" class="meal">
-            <span class="magnet-dot meal-dot" :class="`m-${meal.magnet}`" aria-hidden="true"></span>
-            <div class="meal-body">
-              <p class="meal-label">{{ meal.label }}</p>
-              <p v-if="meal.recipe" class="meal-name">{{ meal.recipe.name }}</p>
-              <p v-else class="meal-empty">Sin planear · <RouterLink to="/plan">Elegir receta</RouterLink></p>
-            </div>
-            <p v-if="meal.recipe?.calories != null" class="meal-kcal num">
-              <Flame :size="15" aria-hidden="true" />{{ meal.recipe.calories }} kcal
-            </p>
+        <p v-if="todayError" class="notice notice-error">{{ todayError }}</p>
+        <p v-else-if="!today.length" class="empty">
+          No hay nada planeado para hoy. <RouterLink to="/plan">Armar la semana</RouterLink>
+        </p>
+        <ol v-else class="timeline" :data-tick="tick">
+          <li v-for="block in today" :key="block.id">
+            <ScheduleBlock :block="block" :recipe-name="recipeName(block)" />
           </li>
         </ol>
-
-        <p v-if="recipes.error" class="notice notice-error">{{ recipes.error }} Las recetas del plan no se pueden mostrar.</p>
       </section>
 
       <FridgeDoor />
@@ -68,23 +64,13 @@ onMounted(() => recipes.fetchAll());
   align-items: start;
 }
 
-.meals { padding: 1.5rem; display: grid; gap: 1rem; }
-.meals-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.meals-head h2 { font-size: 1.35rem; }
-.meals-head p { font-size: 0.88rem; color: var(--ink-faint); }
+.day { padding: 1.5rem; display: grid; gap: 1rem; }
+.day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.day-head h2 { font-size: 1.35rem; }
+.day-head p { font-size: 0.88rem; color: var(--ink-faint); }
 
-.meal-list { margin: 0; padding: 0; list-style: none; }
-.meal {
-  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem;
-  padding: 1.1rem 0;
-  border-top: 1px solid var(--line);
-}
-.meal:first-child { border-top: 0; padding-top: 0.25rem; }
-.meal-dot { width: 14px; height: 14px; }
-.meal-label { font-size: 0.82rem; font-weight: 600; color: var(--ink-faint); }
-.meal-name { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em; }
-.meal-empty { color: var(--ink-soft); }
-.meal-kcal { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.88rem; color: var(--ink-soft); white-space: nowrap; }
+.timeline { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
+.empty { color: var(--ink-soft); }
 
 @media (max-width: 1024px) {
   .today { grid-template-columns: 1fr; }
