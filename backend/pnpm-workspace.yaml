@@ -14,5 +14,8 @@ strictDepBuilds: true
 # No aceptar dependencias que vengan de git, tarballs o rutas locales.
 blockExoticSubdeps: true
 
-# Scripts de instalación aprobados explícitamente (se llena con `pnpm approve-builds`).
-allowBuilds: {}
+# Scripts de instalación: se deciden uno por uno (`pnpm approve-builds`).
+# esbuild (lo usa tsx) trae su binario como dependencia opcional por plataforma,
+# así que su postinstall sobra: denegado.
+allowBuilds:
+  esbuild: false

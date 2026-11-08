@@ -2,8 +2,8 @@
 
 Planificador de comidas saludables: recetas, plan semanal y generación de listas/planes.
 
-- **frontend/**: Vue 3 + Vite + Vue Router + Pinia
-- **backend/**: Node.js + Express 5, arquitectura hexagonal
+- **frontend/**: Vue 3 + Vite + Vue Router + Pinia, en TypeScript
+- **backend/**: Node.js + Express 5 en TypeScript, arquitectura hexagonal
 - **supabase/migrations/**: SQL de la base de datos (Supabase, plan gratuito)
 - Automatizaciones: n8n local vía webhooks
 
@@ -17,14 +17,18 @@ Cada carpeta tiene su `pnpm-workspace.yaml` con la configuración de seguridad d
 cd backend
 cp .env.example .env      # PERSISTENCE=memory funciona sin base de datos
 pnpm install
-pnpm dev                  # http://localhost:3000/api/health
-pnpm test
+pnpm dev                  # http://localhost:3000/api/health (tsx, recarga al guardar)
+pnpm test                 # tests con node:test
+pnpm typecheck            # revisa tipos sin compilar
+pnpm build && pnpm start  # compila a dist/ y corre el JavaScript resultante
 
 # Frontend (otra terminal)
 cd frontend
 cp .env.example .env
 pnpm install
 pnpm dev                  # http://localhost:5174
+pnpm typecheck            # vue-tsc: tipos de .ts y .vue
+pnpm build                # typecheck + build de producción
 ```
 
 ## Supabase
@@ -39,22 +43,25 @@ La secret key solo vive en el backend. RLS está activo y sin políticas públic
 src/
   domain/            Entidades y reglas de negocio (sin dependencias externas)
   application/
-    ports/           Contratos que necesita la app (RecipeRepository, AutomationGateway)
-    use-cases/       Casos de uso (ListRecipes, CreateRecipe)
+    ports/           Interfaces que necesita la app (repositorios, AutomationGateway)
+    use-cases/       Casos de uso (crear bloques, listar gastos, ...)
   infrastructure/
     adapters/        Implementaciones de los puertos (Supabase, memoria, n8n)
-    http/            Express: rutas, controladores, middlewares (adaptador de entrada)
-    config/env.js    Variables de entorno
-    container.js     Composition root: conecta puertos con adaptadores
-  app.js             Crea la app de Express (sin listen)
-  server.js          Levanta el servidor
+    http/            Express: rutas y middlewares (adaptador de entrada)
+    config/env.ts    Variables de entorno, validadas al arrancar
+    container.ts     Composition root: conecta puertos con adaptadores
+  app.ts             Crea la app de Express (sin listen)
+  server.ts          Levanta el servidor
 ```
+TypeScript en modo estricto (`noUncheckedIndexedAccess` incluido). Las entidades reciben
+datos `unknown` y los validan en su constructor: el tipo garantiza la forma, la validación garantiza los valores.
+Los tipos que ve el frontend están en `frontend/src/types/api.ts`.
 Regla: `domain` no importa nada de afuera; `application` solo importa `domain`;
 `infrastructure` es la única capa que conoce Express, Supabase o n8n.
 
 Para agregar un módulo nuevo (ej. `meal-plan`): entidad en `domain/`, puerto(s) en
 `application/ports/`, casos de uso en `application/use-cases/`, adaptador en
-`infrastructure/adapters/`, rutas en `infrastructure/http/` y registrarlo en `container.js`.
+`infrastructure/adapters/`, rutas en `infrastructure/http/` y registrarlo en `container.ts`.
 
 ## API de la agenda semanal
 | Método | Ruta | Uso |
