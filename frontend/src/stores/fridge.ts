@@ -1,13 +1,19 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { loadJSON, saveJSON } from '@/lib/storage';
-import { CATEGORIES } from '@/lib/kitchen';
+import { CATEGORIES, type IngredientCategory } from '@/lib/kitchen';
+
+export interface FridgeItem {
+  id: string;
+  name: string;
+  category: IngredientCategory;
+}
 
 const KEY = 'hmp.fridge';
 
 // Por ahora la nevera vive en este navegador; luego pasa al backend (Supabase).
 export const useFridgeStore = defineStore('fridge', () => {
-  const items = ref(loadJSON(KEY, []));
+  const items = ref<FridgeItem[]>(loadJSON<FridgeItem[]>(KEY, []));
 
   watch(items, (value) => saveJSON(KEY, value), { deep: true });
 
@@ -16,7 +22,8 @@ export const useFridgeStore = defineStore('fridge', () => {
     return [...items.value].sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
   });
 
-  function add(name, category) {
+  /** false si está vacío o ya existe */
+  function add(name: string, category: IngredientCategory): boolean {
     const clean = name.trim();
     if (!clean) return false;
     if (items.value.some((i) => i.name.toLowerCase() === clean.toLowerCase())) return false;
@@ -24,7 +31,7 @@ export const useFridgeStore = defineStore('fridge', () => {
     return true;
   }
 
-  function remove(id) {
+  function remove(id: string) {
     items.value = items.value.filter((i) => i.id !== id);
   }
 

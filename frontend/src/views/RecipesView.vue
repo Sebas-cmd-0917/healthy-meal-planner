@@ -1,19 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Flame, Plus, RotateCw } from 'lucide-vue-next';
 import { useRecipesStore } from '@/stores/recipes';
-import { MEALS, mealOfRecipe } from '@/lib/kitchen';
+import { MEALS, mealOfRecipe, type MealId } from '@/lib/kitchen';
+import { errorMessage } from '@/services/api';
+import type { Recipe } from '@/types/api';
 
 const store = useRecipesStore();
 const { items, loading, loaded, error } = storeToRefs(store);
 
-const form = reactive({ name: '', meal: 'almuerzo', calories: '', tags: '' });
+const form = reactive<{ name: string; meal: MealId; calories: number | string; tags: string }>({
+  name: '', meal: 'almuerzo', calories: '', tags: '',
+});
 const saving = ref(false);
 const formError = ref('');
 
-const mealIds = MEALS.map((m) => m.id);
-const extraTags = (recipe) => recipe.tags.filter((t) => !mealIds.includes(t));
+const mealIds: string[] = MEALS.map((m) => m.id);
+const extraTags = (recipe: Recipe) => recipe.tags.filter((t) => !mealIds.includes(t));
 
 onMounted(() => store.fetchAll());
 
@@ -24,12 +28,12 @@ async function submit() {
     const tags = form.tags.split(',').map((t) => t.trim()).filter(Boolean);
     await store.create({
       name: form.name,
-      calories: form.calories === '' ? null : Number(form.calories),
+      calories: String(form.calories).trim() === '' ? null : Number(form.calories),
       tags: [form.meal, ...tags],
     });
     Object.assign(form, { name: '', calories: '', tags: '' });
   } catch (e) {
-    formError.value = e.message === 'Failed to fetch' ? 'No pudimos guardar: el servidor no responde.' : e.message;
+    formError.value = errorMessage(e);
   } finally {
     saving.value = false;
   }

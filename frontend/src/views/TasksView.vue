@@ -1,10 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Check, Plus, RotateCw, X } from 'lucide-vue-next';
 import WeekNav from '@/components/WeekNav.vue';
 import { useTasksStore } from '@/stores/tasks';
 import { dayKey, weekDays } from '@/lib/kitchen';
+import { errorMessage } from '@/services/api';
+import type { ISODate } from '@/types/api';
 
 const tasks = useTasksStore();
 const { weekStart, weekEnd, byDay, summary, loading, error } = storeToRefs(tasks);
@@ -21,20 +23,22 @@ const days = computed(() =>
 const range = computed(() => `${fmtRange.format(weekStart.value)} – ${fmtRange.format(weekEnd.value)}`);
 const isCurrentWeek = computed(() => days.value.some((d) => d.isToday));
 
-const drafts = reactive({});
+/** Texto que se está escribiendo en cada día */
+const drafts = reactive<Record<ISODate, string>>({});
 const busy = ref(false);
 const actionError = ref('');
 
-const run = async (fn) => {
+/** Ejecuta una acción y muestra su error, si lo hay */
+const run = async (fn: () => Promise<unknown>) => {
   actionError.value = '';
   try {
     await fn();
   } catch (e) {
-    actionError.value = e.message;
+    actionError.value = errorMessage(e);
   }
 };
 
-async function add(day) {
+async function add(day: { key: ISODate }) {
   const title = (drafts[day.key] ?? '').trim();
   if (!title || busy.value) return;
   busy.value = true;

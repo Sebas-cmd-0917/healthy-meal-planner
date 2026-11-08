@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Plus, RotateCw } from 'lucide-vue-next';
@@ -7,6 +7,8 @@ import ScheduleBlock from '@/components/ScheduleBlock.vue';
 import { useScheduleStore } from '@/stores/schedule';
 import { useRecipesStore } from '@/stores/recipes';
 import { KINDS, dayKey, weekDays } from '@/lib/kitchen';
+import { errorMessage } from '@/services/api';
+import type { BlockKind, ScheduleBlock as Block } from '@/types/api';
 
 const schedule = useScheduleStore();
 const recipes = useRecipesStore();
@@ -31,17 +33,20 @@ const isCurrentWeek = computed(() => days.value.some((d) => d.isToday));
 const total = computed(() => Object.values(byDay.value).reduce((n, list) => n + list.length, 0));
 const doneCount = computed(() => Object.values(byDay.value).reduce((n, list) => n + list.filter((b) => b.done).length, 0));
 
-const recipeName = (block) => (block.recipeId ? recipes.byId.get(block.recipeId)?.name ?? '' : '');
+const recipeName = (block: Block) => (block.recipeId ? recipes.byId.get(block.recipeId)?.name ?? '' : '');
 
 // Formulario para agregar un bloque
-const form = reactive({ date: todayKey, start: '08:00', end: '09:00', kind: 'trabajo', title: '', recipeId: '' });
+const form = reactive<{ date: string; start: string; end: string; kind: BlockKind; title: string; recipeId: string }>({
+  date: todayKey, start: '08:00', end: '09:00', kind: 'trabajo', title: '', recipeId: '',
+});
 const saving = ref(false);
 const formError = ref('');
 const actionError = ref('');
 
 // Al cambiar de semana, el día del formulario pasa a esa semana (hoy si es la actual)
 watch(days, (list) => {
-  if (!list.some((d) => d.key === form.date)) form.date = (list.find((d) => d.isToday) ?? list[0]).key;
+  const fallback = list.find((d) => d.isToday) ?? list[0];
+  if (fallback && !list.some((d) => d.key === form.date)) form.date = fallback.key;
 }, { immediate: true });
 watch(() => form.kind, (kind) => { if (kind !== 'comida') form.recipeId = ''; });
 
@@ -59,27 +64,27 @@ async function submit() {
     });
     form.title = '';
   } catch (e) {
-    formError.value = e.message;
+    formError.value = errorMessage(e);
   } finally {
     saving.value = false;
   }
 }
 
-async function toggle(block) {
+async function toggle(block: Block) {
   actionError.value = '';
   try {
     await schedule.toggleDone(block);
   } catch (e) {
-    actionError.value = `No se pudo actualizar "${block.title}": ${e.message}`;
+    actionError.value = `No se pudo actualizar "${block.title}": ${errorMessage(e)}`;
   }
 }
 
-async function remove(block) {
+async function remove(block: Block) {
   actionError.value = '';
   try {
     await schedule.remove(block.id);
   } catch (e) {
-    actionError.value = `No se pudo quitar "${block.title}": ${e.message}`;
+    actionError.value = `No se pudo quitar "${block.title}": ${errorMessage(e)}`;
   }
 }
 

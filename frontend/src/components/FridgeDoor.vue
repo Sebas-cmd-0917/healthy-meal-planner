@@ -1,15 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { X, Plus, ChefHat } from 'lucide-vue-next';
 import { useFridgeStore } from '@/stores/fridge';
-import { CATEGORIES, categoryById, guessCategory } from '@/lib/kitchen';
+import { CATEGORIES, categoryById, guessCategory, type IngredientCategory } from '@/lib/kitchen';
+import type { FridgeItem } from '@/stores/fridge';
 
 const fridge = useFridgeStore();
 const { sorted } = storeToRefs(fridge);
 
 const name = ref('');
-const category = ref('fresco');
+const category = ref<IngredientCategory>('fresco');
 const categoryTouched = ref(false);
 const feedback = ref('');
 
@@ -30,7 +31,7 @@ function add() {
   }
 }
 
-function remove(item) {
+function remove(item: FridgeItem) {
   fridge.remove(item.id);
   feedback.value = `${item.name} quitado de la nevera.`;
 }

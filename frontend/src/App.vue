@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Sun, CalendarDays, Dumbbell, ListChecks, Wallet, BookOpen } from 'lucide-vue-next';
 import BrandMark from '@/components/BrandMark.vue';
@@ -13,7 +13,8 @@ const nav = [
   { to: '/recetas', label: 'Recetas', icon: BookOpen },
 ];
 
-const apiOnline = ref(null);
+/** null mientras se comprueba */
+const apiOnline = ref<boolean | null>(null);
 
 onMounted(async () => {
   try {

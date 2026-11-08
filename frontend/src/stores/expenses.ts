@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api } from '@/services/api';
+import { api, errorMessage } from '@/services/api';
 import { addDays, dayKey, startOfWeek } from '@/lib/kitchen';
+import type { Expense, ExpenseSummary, NewExpense } from '@/types/api';
 
-const message = (e) => (e?.message === 'Failed to fetch' ? 'No pudimos conectar con el servidor.' : e?.message);
+export type Period = 'dia' | 'semana' | 'mes';
 
 /** Rango [desde, hasta] del periodo que contiene `anchor`. */
-function rangeFor(period, anchor) {
+function rangeFor(period: Period, anchor: Date): [Date, Date] {
   if (period === 'dia') return [anchor, anchor];
   if (period === 'semana') {
     const start = startOfWeek(anchor);
@@ -15,13 +16,15 @@ function rangeFor(period, anchor) {
   return [new Date(anchor.getFullYear(), anchor.getMonth(), 1), new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)];
 }
 
+const EMPTY_SUMMARY: ExpenseSummary = { total: 0, count: 0, byCategory: [], byDay: [] };
+
 export const useExpensesStore = defineStore('expenses', () => {
-  const period = ref('semana');
+  const period = ref<Period>('semana');
   const anchor = ref(new Date());
-  const items = ref([]);
-  const summary = ref({ total: 0, count: 0, byCategory: [], byDay: [] });
+  const items = ref<Expense[]>([]);
+  const summary = ref<ExpenseSummary>(EMPTY_SUMMARY);
   const loading = ref(false);
-  const error = ref(null);
+  const error = ref<string | null>(null);
 
   const range = computed(() => rangeFor(period.value, anchor.value));
 
@@ -32,19 +35,19 @@ export const useExpensesStore = defineStore('expenses', () => {
       const [from, to] = range.value;
       ({ items: items.value, summary: summary.value } = await api.expenses.list(dayKey(from), dayKey(to)));
     } catch (e) {
-      error.value = message(e);
+      error.value = errorMessage(e);
     } finally {
       loading.value = false;
     }
   }
 
-  function setPeriod(p) {
+  function setPeriod(p: Period) {
     period.value = p;
     anchor.value = new Date();
     return load();
   }
 
-  function shift(step) {
+  function shift(step: number) {
     const a = new Date(anchor.value);
     if (period.value === 'dia') a.setDate(a.getDate() + step);
     else if (period.value === 'semana') a.setDate(a.getDate() + step * 7);
@@ -59,21 +62,13 @@ export const useExpensesStore = defineStore('expenses', () => {
     return dayKey(from) <= today && today <= dayKey(to);
   });
 
-  async function create(expense) {
-    try {
-      await api.expenses.create([expense]);
-    } catch (e) {
-      throw new Error(message(e));
-    }
+  async function create(expense: NewExpense) {
+    await api.expenses.create([expense]);
     await load();
   }
 
-  async function remove(expense) {
-    try {
-      await api.expenses.remove(expense.id);
-    } catch (e) {
-      throw new Error(message(e));
-    }
+  async function remove(expense: Expense) {
+    await api.expenses.remove(expense.id);
     await load();
   }
 

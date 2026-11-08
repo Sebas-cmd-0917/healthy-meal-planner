@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 
 defineProps({

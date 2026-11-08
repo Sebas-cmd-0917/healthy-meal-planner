@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api } from '@/services/api';
+import { api, errorMessage } from '@/services/api';
+import type { NewRecipe, Recipe } from '@/types/api';
 
 export const useRecipesStore = defineStore('recipes', () => {
-  const items = ref([]);
+  const items = ref<Recipe[]>([]);
   const loading = ref(false);
   const loaded = ref(false);
-  const error = ref(null);
+  const error = ref<string | null>(null);
 
   const byId = computed(() => new Map(items.value.map((r) => [r.id, r])));
 
@@ -17,14 +18,14 @@ export const useRecipesStore = defineStore('recipes', () => {
     try {
       items.value = await api.recipes.list();
       loaded.value = true;
-    } catch {
-      error.value = 'No pudimos conectar con el servidor.';
+    } catch (e) {
+      error.value = errorMessage(e);
     } finally {
       loading.value = false;
     }
   }
 
-  async function create(recipe) {
+  async function create(recipe: NewRecipe): Promise<Recipe> {
     const created = await api.recipes.create(recipe);
     items.value.unshift(created);
     return created;

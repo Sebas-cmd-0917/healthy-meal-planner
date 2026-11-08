@@ -1,25 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Plus, RotateCw, X } from 'lucide-vue-next';
 import WeekNav from '@/components/WeekNav.vue';
-import { useExpensesStore } from '@/stores/expenses';
+import { useExpensesStore, type Period } from '@/stores/expenses';
+import { errorMessage } from '@/services/api';
+import type { Expense, ExpenseCategory, ISODate } from '@/types/api';
 import { EXPENSE_CATEGORIES, dayKey, expenseCategoryLabel, formatCOP, parseDay } from '@/lib/kitchen';
 
 const expenses = useExpensesStore();
 const { period, range, items, summary, loading, error, isCurrent } = storeToRefs(expenses);
 
-const PERIODS = [
+const PERIODS: { id: Period; label: string; current: string; prev: string; next: string }[] = [
   { id: 'dia', label: 'Día', current: 'Hoy', prev: 'Día anterior', next: 'Día siguiente' },
   { id: 'semana', label: 'Semana', current: 'Esta semana', prev: 'Semana anterior', next: 'Semana siguiente' },
   { id: 'mes', label: 'Mes', current: 'Este mes', prev: 'Mes anterior', next: 'Mes siguiente' },
 ];
-const activePeriod = computed(() => PERIODS.find((p) => p.id === period.value));
+const activePeriod = computed(() => PERIODS.find((p) => p.id === period.value) ?? PERIODS[1]!);
 
 const fmtLong = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
 const fmtShort = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short' });
 const fmtMonth = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' });
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const rangeLabel = computed(() => {
   const [from, to] = range.value;
@@ -32,17 +34,20 @@ const maxCategory = computed(() => Math.max(1, ...summary.value.byCategory.map((
 
 // Gastos agrupados por día, el más reciente primero
 const groups = computed(() => {
-  const map = new Map();
+  const map = new Map<ISODate, Expense[]>();
   for (const e of [...items.value].reverse()) {
-    if (!map.has(e.date)) map.set(e.date, []);
-    map.get(e.date).push(e);
+    const list = map.get(e.date) ?? [];
+    list.push(e);
+    map.set(e.date, list);
   }
   return [...map].map(([date, list]) => ({
     date, label: cap(fmtLong.format(parseDay(date))), list, total: list.reduce((n, e) => n + e.amount, 0),
   }));
 });
 
-const form = reactive({ amount: '', category: 'comida', note: '', date: dayKey(new Date()) });
+const form = reactive<{ amount: string; category: ExpenseCategory; note: string; date: ISODate }>({
+  amount: '', category: 'comida', note: '', date: dayKey(new Date()),
+});
 const saving = ref(false);
 const formError = ref('');
 const actionError = ref('');
@@ -54,18 +59,18 @@ async function submit() {
     await expenses.create({ ...form });
     Object.assign(form, { amount: '', note: '' });
   } catch (e) {
-    formError.value = e.message;
+    formError.value = errorMessage(e);
   } finally {
     saving.value = false;
   }
 }
 
-async function remove(expense) {
+async function remove(expense: Expense) {
   actionError.value = '';
   try {
     await expenses.remove(expense);
   } catch (e) {
-    actionError.value = e.message;
+    actionError.value = errorMessage(e);
   }
 }
 

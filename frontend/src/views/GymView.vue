@@ -1,10 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Check, Pencil, Plus, RotateCw, X } from 'lucide-vue-next';
 import WeekNav from '@/components/WeekNav.vue';
 import { useScheduleStore } from '@/stores/schedule';
 import { dayKey, formatRest, parseDay } from '@/lib/kitchen';
+import { errorMessage } from '@/services/api';
+import type { Exercise, ISODate, ScheduleBlock } from '@/types/api';
+
+/** Una fila del editor: los inputs numéricos devuelven number o '' si están vacíos */
+interface RowDraft {
+  name: string;
+  sets: number | string;
+  reps: number | string;
+  weightKg: number | string;
+  rest: string;
+}
 
 const schedule = useScheduleStore();
 const { blocks, weekStart, weekEnd, loading, error } = storeToRefs(schedule);
@@ -17,38 +28,40 @@ const sessions = computed(() => blocks.value.filter((b) => b.kind === 'gym'));
 const doneCount = computed(() => sessions.value.filter((s) => s.done).length);
 const range = computed(() => `${fmtRange.format(weekStart.value)} – ${fmtRange.format(weekEnd.value)}`);
 const isCurrentWeek = computed(() => dayKey(weekStart.value) <= todayKey && todayKey <= dayKey(weekEnd.value));
-const dayLabel = (key) => {
+const dayLabel = (key: ISODate) => {
   const label = fmtDay.format(parseDay(key));
   return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
 // Edición de rutina: una sesión a la vez
-const editing = ref(null);
-const draft = reactive({ rows: [] });
+const editing = ref<string | null>(null);
+const draft = reactive<{ rows: RowDraft[] }>({ rows: [] });
 const saving = ref(false);
 const editError = ref('');
 const actionError = ref('');
 
-const emptyRow = () => ({ name: '', sets: '', reps: '', weightKg: '', rest: '' });
+const emptyRow = (): RowDraft => ({ name: '', sets: '', reps: '', weightKg: '', rest: '' });
 // "1:30" o "90" → 90 segundos
-const parseRest = (value) => {
-  const v = String(value ?? '').trim();
+const parseRest = (value: string): number | null => {
+  const v = value.trim();
   if (!v) return null;
   const m = v.match(/^(\d{1,2}):(\d{2})$/);
   return m ? Number(m[1]) * 60 + Number(m[2]) : Number(v);
 };
 
-function startEdit(session) {
+const isBlank = (v: number | string) => String(v).trim() === '';
+
+function startEdit(session: ScheduleBlock) {
   editError.value = '';
   editing.value = session.id;
   draft.rows = session.exercises.length
-    ? session.exercises.map((e) => ({
+    ? session.exercises.map((e: Exercise): RowDraft => ({
       name: e.name, sets: e.sets ?? '', reps: e.reps ?? '', weightKg: e.weightKg ?? '', rest: formatRest(e.restSeconds),
     }))
     : [emptyRow()];
 }
 
-async function saveEdit(session) {
+async function saveEdit(session: ScheduleBlock) {
   editError.value = '';
   saving.value = true;
   try {
@@ -56,26 +69,26 @@ async function saveEdit(session) {
       .filter((r) => r.name.trim())
       .map((r) => ({
         name: r.name,
-        sets: r.sets === '' ? null : Number(r.sets),
-        reps: r.reps === '' ? null : String(r.reps),
-        weightKg: r.weightKg === '' ? null : Number(r.weightKg),
+        sets: isBlank(r.sets) ? null : Number(r.sets),
+        reps: isBlank(r.reps) ? null : String(r.reps).trim(),
+        weightKg: isBlank(r.weightKg) ? null : Number(r.weightKg),
         restSeconds: parseRest(r.rest),
       }));
     await schedule.update(session.id, { exercises });
     editing.value = null;
   } catch (e) {
-    editError.value = e.message;
+    editError.value = errorMessage(e);
   } finally {
     saving.value = false;
   }
 }
 
-async function toggle(session) {
+async function toggle(session: ScheduleBlock) {
   actionError.value = '';
   try {
     await schedule.toggleDone(session);
   } catch (e) {
-    actionError.value = e.message;
+    actionError.value = errorMessage(e);
   }
 }
 

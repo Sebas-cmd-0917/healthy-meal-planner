@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Check } from 'lucide-vue-next';
@@ -7,6 +7,8 @@ import ScheduleBlock from '@/components/ScheduleBlock.vue';
 import { useRecipesStore } from '@/stores/recipes';
 import { useScheduleStore } from '@/stores/schedule';
 import { useTasksStore } from '@/stores/tasks';
+import { errorMessage } from '@/services/api';
+import type { ScheduleBlock as Block } from '@/types/api';
 
 const recipes = useRecipesStore();
 const schedule = useScheduleStore();
@@ -15,23 +17,24 @@ const { today, todayError } = storeToRefs(schedule);
 const { today: todayTasks } = storeToRefs(tasks);
 
 const actionError = ref('');
-const run = async (fn) => {
+/** Ejecuta una acción y muestra su error, si lo hay */
+const run = async (fn: () => Promise<unknown>) => {
   actionError.value = '';
   try {
     await fn();
   } catch (e) {
-    actionError.value = e.message;
+    actionError.value = errorMessage(e);
   }
 };
 
 const dateLabel = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 const title = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
-const recipeName = (block) => (block.recipeId ? recipes.byId.get(block.recipeId)?.name ?? '' : '');
+const recipeName = (block: Block) => (block.recipeId ? recipes.byId.get(block.recipeId)?.name ?? '' : '');
 
 // Re-render cada minuto para que el "Ahora" avance solo
 const tick = ref(0);
-let timer;
+let timer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
   schedule.loadToday();
   tasks.loadToday();

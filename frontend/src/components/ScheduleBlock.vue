@@ -1,22 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { Briefcase, Dumbbell, UtensilsCrossed, CircleDot, Trash2, Check } from 'lucide-vue-next';
 import { kindById, isNow, formatRest } from '@/lib/kitchen';
+import type { BlockKind, Exercise, ScheduleBlock } from '@/types/api';
 
-const props = defineProps({
-  block: { type: Object, required: true },
-  recipeName: { type: String, default: '' },
-  compact: { type: Boolean, default: false },
-  removable: { type: Boolean, default: false },
-  checkable: { type: Boolean, default: false },
-});
-defineEmits(['remove', 'toggle']);
+const props = withDefaults(defineProps<{
+  block: ScheduleBlock;
+  recipeName?: string;
+  compact?: boolean;
+  removable?: boolean;
+  checkable?: boolean;
+}>(), { recipeName: '', compact: false, removable: false, checkable: false });
 
-const ICONS = { trabajo: Briefcase, gym: Dumbbell, comida: UtensilsCrossed, otro: CircleDot };
+defineEmits<{
+  remove: [block: ScheduleBlock];
+  toggle: [block: ScheduleBlock];
+}>();
+
+const ICONS: Record<BlockKind, typeof Briefcase> = { trabajo: Briefcase, gym: Dumbbell, comida: UtensilsCrossed, otro: CircleDot };
 const kind = computed(() => kindById(props.block.kind));
 const now = computed(() => isNow(props.block));
 
-const fmtExercise = (e) => {
+const fmtExercise = (e: Exercise) => {
   const volume = e.sets && e.reps ? `${e.sets}×${e.reps}` : e.sets ? `${e.sets} series` : e.reps ? `${e.reps} reps` : '';
   const rest = e.restSeconds != null ? `desc. ${formatRest(e.restSeconds)}` : '';
   return [e.name, volume, e.weightKg != null ? `${e.weightKg} kg` : '', rest].filter(Boolean).join(' · ');
@@ -36,7 +41,8 @@ const fmtExercise = (e) => {
       >
         <Check v-if="block.done" :size="compact ? 13 : 15" :stroke-width="3" aria-hidden="true" />
       </button>
-      <span class="block-icon" aria-hidden="true">
+      <!-- En la vista compacta con check, el color ya dice el tipo: se omite el ícono -->
+      <span v-if="!(compact && checkable)" class="block-icon" aria-hidden="true">
         <component :is="ICONS[block.kind]" :size="compact ? 14 : 16" :stroke-width="2" />
       </span>
       <p class="block-time num">
@@ -67,6 +73,7 @@ const fmtExercise = (e) => {
 <style scoped>
 .block {
   position: relative;
+  min-width: 0;
   display: grid; gap: 0.2rem;
   padding: 0.65rem 0.75rem;
   border-radius: var(--radius-m);
