@@ -1,15 +1,16 @@
 <script setup>
 import { computed } from 'vue';
-import { Briefcase, Dumbbell, UtensilsCrossed, CircleDot, Trash2 } from 'lucide-vue-next';
-import { kindById, isNow } from '@/lib/kitchen';
+import { Briefcase, Dumbbell, UtensilsCrossed, CircleDot, Trash2, Check } from 'lucide-vue-next';
+import { kindById, isNow, formatRest } from '@/lib/kitchen';
 
 const props = defineProps({
   block: { type: Object, required: true },
   recipeName: { type: String, default: '' },
   compact: { type: Boolean, default: false },
   removable: { type: Boolean, default: false },
+  checkable: { type: Boolean, default: false },
 });
-defineEmits(['remove']);
+defineEmits(['remove', 'toggle']);
 
 const ICONS = { trabajo: Briefcase, gym: Dumbbell, comida: UtensilsCrossed, otro: CircleDot };
 const kind = computed(() => kindById(props.block.kind));
@@ -17,20 +18,31 @@ const now = computed(() => isNow(props.block));
 
 const fmtExercise = (e) => {
   const volume = e.sets && e.reps ? `${e.sets}×${e.reps}` : e.sets ? `${e.sets} series` : e.reps ? `${e.reps} reps` : '';
-  return [e.name, volume, e.weightKg != null ? `${e.weightKg} kg` : ''].filter(Boolean).join(' · ');
+  const rest = e.restSeconds != null ? `desc. ${formatRest(e.restSeconds)}` : '';
+  return [e.name, volume, e.weightKg != null ? `${e.weightKg} kg` : '', rest].filter(Boolean).join(' · ');
 };
 </script>
 
 <template>
-  <article class="block" :class="[`m-${kind.magnet}`, { compact, now }]">
+  <article class="block" :class="[`m-${kind.magnet}`, { compact, now, done: block.done }]">
     <header class="block-head">
+      <button
+        v-if="checkable"
+        type="button"
+        class="block-check"
+        :aria-pressed="block.done"
+        :aria-label="`${block.done ? 'Marcar como no realizado' : 'Marcar como realizado'}: ${block.title}`"
+        @click="$emit('toggle', block)"
+      >
+        <Check v-if="block.done" :size="compact ? 13 : 15" :stroke-width="3" aria-hidden="true" />
+      </button>
       <span class="block-icon" aria-hidden="true">
         <component :is="ICONS[block.kind]" :size="compact ? 14 : 16" :stroke-width="2" />
       </span>
       <p class="block-time num">
         <span class="visually-hidden">{{ kind.label }}, de </span>{{ block.start }}<span aria-hidden="true">–</span><span class="visually-hidden"> a </span>{{ block.end }}
       </p>
-      <span v-if="now" class="now-pill">Ahora</span>
+      <span v-if="now && !block.done" class="now-pill">Ahora</span>
       <button
         v-if="removable"
         type="button"
@@ -97,6 +109,24 @@ const fmtExercise = (e) => {
   .block:hover .block-remove { opacity: 0.6; }
   .block-remove:hover { opacity: 1; background: rgb(255 255 255 / 0.55); }
 }
+
+.block-check {
+  display: grid; place-items: center; flex: none;
+  width: 22px; height: 22px; padding: 0;
+  border: 2px solid var(--dot); border-radius: 7px;
+  background: rgb(255 255 255 / 0.7); color: #fff;
+  cursor: pointer;
+  transition: background-color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.block-check:active { transform: scale(0.9); }
+.block-check[aria-pressed='true'] { background: var(--dot); }
+/* Área táctil de 44px sin agrandar el cuadro */
+.block-check { position: relative; }
+.block-check::after { content: ''; position: absolute; inset: -11px; }
+.compact .block-check { width: 20px; height: 20px; border-radius: 6px; }
+
+.block.done .block-title { text-decoration: line-through; text-decoration-thickness: 1.5px; opacity: 0.7; }
+.block.done .block-sub, .block.done .exercises { opacity: 0.6; }
 
 .block-title { font-family: var(--font-display); font-weight: 600; font-size: 1.02rem; line-height: 1.2; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .compact .block-title { font-size: 0.9rem; }

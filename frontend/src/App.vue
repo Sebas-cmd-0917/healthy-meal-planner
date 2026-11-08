@@ -1,12 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import { Sun, CalendarDays, BookOpen } from 'lucide-vue-next';
+import { Sun, CalendarDays, Dumbbell, ListChecks, Wallet, BookOpen } from 'lucide-vue-next';
 import BrandMark from '@/components/BrandMark.vue';
 import { api } from '@/services/api';
 
 const nav = [
   { to: '/', label: 'Hoy', icon: Sun },
   { to: '/plan', label: 'Plan semanal', short: 'Plan', icon: CalendarDays },
+  { to: '/gym', label: 'Gym', icon: Dumbbell },
+  { to: '/tareas', label: 'Tareas', icon: ListChecks },
+  { to: '/gastos', label: 'Gastos', icon: Wallet },
   { to: '/recetas', label: 'Recetas', icon: BookOpen },
 ];
 
@@ -135,8 +138,8 @@ onMounted(async () => {
 
   .tabbar {
     position: fixed; inset: auto 0 0 0; z-index: 10;
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.15rem;
+    padding: 0.35rem 0.35rem calc(0.35rem + env(safe-area-inset-bottom));
     background: var(--mint);
     border-top: 1px solid var(--mint-deep);
   }
@@ -144,7 +147,7 @@ onMounted(async () => {
     display: grid; justify-items: center; gap: 0.15rem;
     min-height: 52px; padding-top: 0.35rem;
     border-radius: var(--radius-s);
-    font-size: 0.75rem; font-weight: 600; color: var(--mint-ink); text-decoration: none;
+    font-size: 0.7rem; font-weight: 600; color: var(--mint-ink); text-decoration: none;
   }
   .tab.router-link-exact-active { background: var(--enamel-raised); color: var(--ink); box-shadow: var(--shadow-raised); }
 }

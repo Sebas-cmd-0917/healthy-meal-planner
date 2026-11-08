@@ -58,6 +58,23 @@ export const useScheduleStore = defineStore('schedule', () => {
     await loadWeek();
   }
 
+  /** Reemplaza el bloque en las listas cargadas (semana y hoy) */
+  function replace(updated) {
+    const swap = (list) => list.map((b) => (b.id === updated.id ? updated : b));
+    blocks.value = swap(blocks.value);
+    today.value = swap(today.value);
+  }
+
+  async function update(id, changes) {
+    try {
+      replace(await api.schedule.update(id, changes));
+    } catch (e) {
+      throw new Error(message(e));
+    }
+  }
+
+  const toggleDone = (block) => update(block.id, { done: !block.done });
+
   async function remove(id) {
     try {
       await api.schedule.remove(id);
@@ -68,5 +85,8 @@ export const useScheduleStore = defineStore('schedule', () => {
     today.value = today.value.filter((b) => b.id !== id);
   }
 
-  return { weekStart, weekEnd, blocks, byDay, loading, error, today, todayError, loadWeek, shiftWeek, loadToday, create, remove };
+  return {
+    weekStart, weekEnd, blocks, byDay, loading, error, today, todayError,
+    loadWeek, shiftWeek, loadToday, create, update, toggleDone, remove,
+  };
 });

@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { ChevronLeft, ChevronRight, Plus, RotateCw } from 'lucide-vue-next';
+import { Plus, RotateCw } from 'lucide-vue-next';
+import WeekNav from '@/components/WeekNav.vue';
 import ScheduleBlock from '@/components/ScheduleBlock.vue';
 import { useScheduleStore } from '@/stores/schedule';
 import { useRecipesStore } from '@/stores/recipes';
@@ -28,6 +29,7 @@ const days = computed(() =>
 const range = computed(() => `${fmtRange.format(weekStart.value)} – ${fmtRange.format(weekEnd.value)}`);
 const isCurrentWeek = computed(() => days.value.some((d) => d.isToday));
 const total = computed(() => Object.values(byDay.value).reduce((n, list) => n + list.length, 0));
+const doneCount = computed(() => Object.values(byDay.value).reduce((n, list) => n + list.filter((b) => b.done).length, 0));
 
 const recipeName = (block) => (block.recipeId ? recipes.byId.get(block.recipeId)?.name ?? '' : '');
 
@@ -63,6 +65,15 @@ async function submit() {
   }
 }
 
+async function toggle(block) {
+  actionError.value = '';
+  try {
+    await schedule.toggleDone(block);
+  } catch (e) {
+    actionError.value = `No se pudo actualizar "${block.title}": ${e.message}`;
+  }
+}
+
 async function remove(block) {
   actionError.value = '';
   try {
@@ -83,17 +94,14 @@ onMounted(() => {
     <header class="head">
       <div class="page-head">
         <h1>Plan semanal</h1>
-        <p class="num">Semana del {{ range }} · {{ total }} {{ total === 1 ? 'actividad' : 'actividades' }}</p>
+        <p class="num">Semana del {{ range }} · {{ doneCount }} de {{ total }} {{ total === 1 ? 'actividad realizada' : 'actividades realizadas' }}</p>
       </div>
-      <nav class="week-nav" aria-label="Cambiar de semana">
-        <button type="button" class="btn btn-quiet icon-btn" aria-label="Semana anterior" @click="schedule.shiftWeek(-1)">
-          <ChevronLeft :size="18" aria-hidden="true" />
-        </button>
-        <button type="button" class="btn btn-quiet" :disabled="isCurrentWeek" @click="schedule.loadWeek(new Date())">Esta semana</button>
-        <button type="button" class="btn btn-quiet icon-btn" aria-label="Semana siguiente" @click="schedule.shiftWeek(1)">
-          <ChevronRight :size="18" aria-hidden="true" />
-        </button>
-      </nav>
+      <WeekNav
+        :is-current="isCurrentWeek"
+        @prev="schedule.shiftWeek(-1)"
+        @next="schedule.shiftWeek(1)"
+        @current="schedule.loadWeek(new Date())"
+      />
     </header>
 
     <form class="add panel" @submit.prevent="submit">
@@ -163,7 +171,9 @@ onMounted(() => {
             :recipe-name="recipeName(block)"
             compact
             removable
+            checkable
             @remove="remove"
+            @toggle="toggle"
           />
           <p v-if="!loading && !(byDay[day.key]?.length)" class="free">Libre</p>
         </div>
@@ -174,9 +184,6 @@ onMounted(() => {
 
 <style scoped>
 .head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; }
-.week-nav { display: flex; gap: 0.4rem; }
-.icon-btn { padding: 0; width: 44px; }
-.week-nav .btn:disabled { opacity: 0.5; }
 
 .add { padding: 1.25rem 1.5rem; display: grid; gap: 1rem; }
 .add h2 { font-size: 1.15rem; }

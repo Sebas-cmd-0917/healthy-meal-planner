@@ -75,3 +75,29 @@ export function isNow(block, now = new Date()) {
   const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   return block.start <= hhmm && hhmm < block.end;
 }
+
+export const EXPENSE_CATEGORIES = [
+  { id: 'comida', label: 'Comida fuera' },
+  { id: 'mercado', label: 'Mercado' },
+  { id: 'transporte', label: 'Transporte' },
+  { id: 'hogar', label: 'Hogar' },
+  { id: 'servicios', label: 'Servicios' },
+  { id: 'salud', label: 'Salud' },
+  { id: 'entretenimiento', label: 'Entretenimiento' },
+  { id: 'compras', label: 'Compras' },
+  { id: 'otros', label: 'Otros' },
+];
+export const expenseCategoryLabel = (id) => EXPENSE_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+
+const cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+export const formatCOP = (n) => cop.format(n);
+
+/** 90 → "1:30", 45 → "0:45" */
+export const formatRest = (seconds) =>
+  seconds == null ? '' : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+
+/** Fecha local en formato YYYY-MM-DD a Date (sin saltos de zona horaria). */
+export const parseDay = (key) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};

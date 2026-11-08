@@ -10,6 +10,14 @@ async function request(path, options = {}) {
   return body.data;
 }
 
+/** Recursos con fecha que siguen el mismo contrato (tareas, gastos). */
+const crud = (path, batchKey) => ({
+  list: (from, to) => request(`${path}?from=${from}&to=${to}`),
+  create: (items) => request(path, { method: 'POST', body: JSON.stringify({ [batchKey]: items }) }),
+  update: (id, changes) => request(`${path}/${id}`, { method: 'PATCH', body: JSON.stringify(changes) }),
+  remove: (id) => request(`${path}/${id}`, { method: 'DELETE' }),
+});
+
 export const api = {
   health: () => request('/health'),
   recipes: {
@@ -22,4 +30,6 @@ export const api = {
     update: (id, changes) => request(`/schedule/${id}`, { method: 'PATCH', body: JSON.stringify(changes) }),
     remove: (id) => request(`/schedule/${id}`, { method: 'DELETE' }),
   },
+  tasks: crud('/tasks', 'tasks'),
+  expenses: crud('/expenses', 'expenses'),
 };
