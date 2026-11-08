@@ -46,7 +46,7 @@ test('crea la semana en una sola petición y la lista ordenada', async () => {
     assert.equal(data.length, 3);
     assert.equal(data[0].start, '08:00');
     assert.equal(data[0].title, 'Trabajo');
-    assert.deepEqual(data[1].exercises[0], { name: 'Sentadilla', sets: 4, reps: '8-10', weightKg: 60, notes: '' });
+    assert.deepEqual(data[1].exercises[0], { name: 'Sentadilla', sets: 4, reps: '8-10', weightKg: 60, restSeconds: null, notes: '' });
     assert.equal(events[0].event, 'schedule.created');
 
     const list = await (await call('/schedule?from=2026-11-09&to=2026-11-15')).json();

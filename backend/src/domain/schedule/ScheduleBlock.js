@@ -1,22 +1,12 @@
 import { ValidationError } from '../shared/DomainError.js';
+import { assertDate } from '../shared/dateRange.js';
 
 export const BLOCK_KINDS = ['trabajo', 'gym', 'comida', 'otro'];
 
 const DEFAULT_TITLES = { trabajo: 'Trabajo', gym: 'Gym', comida: 'Comida', otro: 'Actividad' };
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^(\d{1,2}):(\d{2})(?::\d{2})?$/;
 
-/** Valida YYYY-MM-DD y que sea una fecha real (no 2026-02-31). */
-export function assertDate(value, field = 'fecha') {
-  if (typeof value !== 'string' || !DATE_RE.test(value)) {
-    throw new ValidationError(`La ${field} debe tener formato AAAA-MM-DD`);
-  }
-  const d = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== value) {
-    throw new ValidationError(`La ${field} ${value} no existe`);
-  }
-  return value;
-}
+export { assertDate };
 
 /** Acepta "8:00", "08:00" o "08:00:00" y devuelve "08:00". */
 function normalizeTime(value, field) {
@@ -37,7 +27,7 @@ const optionalNumber = (value, field, { integer = false, min = 0 } = {}) => {
 };
 
 export class Exercise {
-  constructor({ name, sets = null, reps = null, weightKg = null, notes = '' }) {
+  constructor({ name, sets = null, reps = null, weightKg = null, restSeconds = null, notes = '' }) {
     if (!name || typeof name !== 'string' || !name.trim()) {
       throw new ValidationError('Cada ejercicio necesita un nombre');
     }
@@ -46,11 +36,15 @@ export class Exercise {
     // Las repeticiones pueden ser un rango: "8-10"
     this.reps = reps === null || reps === undefined || reps === '' ? null : String(reps).trim();
     this.weightKg = optionalNumber(weightKg, 'El peso');
+    // Descanso entre series, en segundos (90 = 1:30)
+    this.restSeconds = optionalNumber(restSeconds, 'El descanso', { integer: true });
     this.notes = notes ?? '';
   }
 
   toJSON() {
-    return { name: this.name, sets: this.sets, reps: this.reps, weightKg: this.weightKg, notes: this.notes };
+    return {
+      name: this.name, sets: this.sets, reps: this.reps, weightKg: this.weightKg, restSeconds: this.restSeconds, notes: this.notes,
+    };
   }
 }
 
@@ -60,7 +54,7 @@ export class Exercise {
  */
 export class ScheduleBlock {
   constructor({
-    id = null, date, start, end, kind, title, notes = '', recipeId = null, exercises = [], createdAt = null,
+    id = null, date, start, end, kind, title, notes = '', recipeId = null, exercises = [], done = false, createdAt = null,
   }) {
     if (!BLOCK_KINDS.includes(kind)) {
       throw new ValidationError(`El tipo debe ser uno de: ${BLOCK_KINDS.join(', ')}`);
@@ -82,6 +76,9 @@ export class ScheduleBlock {
     if (exercises.length && kind !== 'gym') throw new ValidationError('Solo los bloques de gym pueden tener ejercicios');
     this.exercises = exercises.map((e) => (e instanceof Exercise ? e : new Exercise(e)));
 
+    if (typeof done !== 'boolean') throw new ValidationError('"done" debe ser true o false');
+    this.done = done;
+
     this.createdAt = createdAt;
   }
 
@@ -101,6 +98,7 @@ export class ScheduleBlock {
       notes: this.notes,
       recipeId: this.recipeId,
       exercises: this.exercises.map((e) => e.toJSON()),
+      done: this.done,
       createdAt: this.createdAt,
     };
   }

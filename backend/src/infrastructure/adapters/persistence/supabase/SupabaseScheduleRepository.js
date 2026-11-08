@@ -19,7 +19,10 @@ const toDomain = (row) => new ScheduleBlock({
   recipeId: row.recipe_id,
   exercises: [...(row[EXERCISES] ?? [])]
     .sort((a, b) => a.position - b.position)
-    .map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, weightKg: e.weight_kg, notes: e.notes ?? '' })),
+    .map((e) => ({
+      name: e.name, sets: e.sets, reps: e.reps, weightKg: e.weight_kg, restSeconds: e.rest_seconds, notes: e.notes ?? '',
+    })),
+  done: row.done ?? false,
   createdAt: row.created_at,
 });
 
@@ -61,6 +64,7 @@ export class SupabaseScheduleRepository {
       title: b.title,
       notes: b.notes,
       recipe_id: b.recipeId,
+      done: b.done,
     }));
     const { error: upsertError } = await this.client.from(BLOCKS).upsert(rows);
     if (upsertError) throw upsertError;
@@ -78,6 +82,7 @@ export class SupabaseScheduleRepository {
         sets: e.sets,
         reps: e.reps,
         weight_kg: e.weightKg,
+        rest_seconds: e.restSeconds,
         notes: e.notes,
       })),
     );

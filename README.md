@@ -29,7 +29,7 @@ pnpm dev                  # http://localhost:5174
 
 ## Supabase
 1. Crear proyecto en supabase.com.
-2. SQL Editor → ejecutar en orden `supabase/migrations/0001_init.sql` y `0002_schedule.sql`.
+2. SQL Editor → ejecutar en orden `0001_init.sql`, `0002_schedule.sql` y `0003_tasks_expenses.sql` (carpeta `supabase/migrations/`).
 3. En `backend/.env`: `PERSISTENCE=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (la llave `sb_secret_...`).
 
 La secret key solo vive en el backend. RLS está activo y sin políticas públicas.
@@ -64,8 +64,15 @@ Para agregar un módulo nuevo (ej. `meal-plan`): entidad en `domain/`, puerto(s)
 | PATCH | `/api/schedule/:id` | Actualiza campos de un bloque |
 | DELETE | `/api/schedule/:id` | Quita un bloque |
 
-Un bloque: `{ date, start, end, kind: trabajo|gym|comida|otro, title, notes, recipeId?, exercises? }`.
-Los de gym llevan su rutina: `exercises: [{ name, sets, reps, weightKg, notes }]`.
+Un bloque: `{ date, start, end, kind: trabajo|gym|comida|otro, title, notes, recipeId?, exercises?, done }`.
+Los de gym llevan su rutina: `exercises: [{ name, sets, reps, weightKg, restSeconds, notes }]`.
+
+## API de tareas y gastos
+Mismo contrato para `/api/tasks` y `/api/expenses`:
+`GET ?from&to` → `{ items, summary }` · `POST` uno, una lista o `{ tasks|expenses: [...] }` · `PATCH /:id` · `DELETE /:id`.
+
+- Tarea: `{ date, title, notes, done }`. El resumen trae total, hechas y pendientes.
+- Gasto (COP, sin decimales): `{ date, amount, category, note }`. Categorías: comida, mercado, transporte, hogar, servicios, salud, entretenimiento, compras, otros. El resumen trae total, cantidad, totales por categoría y por día. Rango máximo: 92 días.
 
 ## n8n
 El backend publica eventos (ej. `recipe.created`) como `POST {N8N_WEBHOOK_BASE_URL}/recipe-created`.

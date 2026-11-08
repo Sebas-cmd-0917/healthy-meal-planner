@@ -1,6 +1,6 @@
 import { NotFoundError, ValidationError } from '../../../domain/shared/DomainError.js';
 
-const EDITABLE = ['date', 'start', 'end', 'kind', 'title', 'notes', 'recipeId', 'exercises'];
+const EDITABLE = ['date', 'start', 'end', 'kind', 'title', 'notes', 'recipeId', 'exercises', 'done'];
 
 export class UpdateBlock {
   constructor({ scheduleRepository, recipeRepository }) {
